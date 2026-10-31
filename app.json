@@ -1,4 +1,3 @@
-
 {
   "expo": {
     "name": "Heartbeat",
@@ -16,6 +15,7 @@
     },
     "android": {
       "package": "com.ankienho.akqt",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
