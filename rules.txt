@@ -101,7 +101,7 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.displayName is string
           && request.resource.data.displayName.size() >= 1
-          && request.resource.data.displayName.size() <= 24;
+          && request.resource.data.displayName.size() <= 30;
 
         allow delete: if false;
       }
