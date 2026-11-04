@@ -20,6 +20,55 @@ service cloud.firestore {
           ).data.members;
     }
 
+    function validDisplayName(data) {
+      return data.displayName is string
+        && data.displayName.size() >= 1
+        && data.displayName.size() <= 30;
+    }
+
+    function validGender(data) {
+      return data.gender in ['male', 'female'];
+    }
+
+    function validPairLink(userId) {
+      let pairPath = /databases/$(database)/documents/pairs/$(request.resource.data.pairId);
+      let pairData = get(pairPath).data;
+      let codePath = /databases/$(database)/documents/pairCodes/$(pairData.inviteCode);
+      let codeData = get(codePath).data;
+
+      return request.resource.data.pairId is string
+        && (!('inviteCode' in request.resource.data)
+          || request.resource.data.inviteCode == pairData.inviteCode)
+        && (
+          (
+            pairData.status == 'waiting'
+            && pairData.createdBy == userId
+            && pairData.members == [userId]
+            && request.resource.data.pairStatus == 'waiting'
+            && codeData.status == 'open'
+            && codeData.pairId == request.resource.data.pairId
+          )
+          ||
+          (
+            pairData.status == 'paired'
+            && pairData.members.size() == 2
+            && userId in pairData.members
+            && request.resource.data.pairStatus == 'paired'
+            && request.resource.data.partnerUid in pairData.members
+            && request.resource.data.partnerUid != userId
+            && request.resource.data.partnerName is string
+            && codeData.status == 'used'
+            && (
+              (pairData.createdBy == userId
+                && codeData.joinedBy == request.resource.data.partnerUid)
+              || (pairData.createdBy != userId
+                && codeData.joinedBy == userId)
+            )
+            && codeData.pairId == request.resource.data.pairId
+          )
+        );
+    }
+
     // =========================
     // USER PROFILES
     // =========================
@@ -31,16 +80,32 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.uid == userId
-        && request.resource.data.displayName is string
-        && request.resource.data.displayName.size() >= 1
-        && request.resource.data.displayName.size() <= 30;
+        && validDisplayName(request.resource.data)
+        && validGender(request.resource.data)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'gender', 'createdAt', 'updatedAt'
+        ]);
 
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.uid == userId
-        && request.resource.data.displayName is string
-        && request.resource.data.displayName.size() >= 1
-        && request.resource.data.displayName.size() <= 30;
+        && validDisplayName(request.resource.data)
+        && (!('gender' in request.resource.data)
+          || validGender(request.resource.data))
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'displayName', 'gender', 'updatedAt', 'pairId', 'pairStatus', 'inviteCode',
+          'partnerUid', 'partnerName'
+        ])
+        && (
+          !('pairId' in resource.data)
+          || request.resource.data.pairId == resource.data.pairId
+        )
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'pairId', 'pairStatus', 'inviteCode', 'partnerUid', 'partnerName'
+          ])
+          || validPairLink(userId)
+        );
 
       allow delete: if false;
     }
@@ -74,7 +139,7 @@ service cloud.firestore {
           )
         );
 
-      allow update: if signedIn()
+      allow update: if (signedIn()
         && resource.data.status == 'waiting'
         && request.resource.data.status == 'paired'
         && request.resource.data.members.size() == 2
@@ -86,7 +151,16 @@ service cloud.firestore {
         ).data.status == 'used'
         && getAfter(
           /databases/$(database)/documents/pairCodes/$(resource.data.inviteCode)
-        ).data.joinedBy == request.auth.uid;
+        ).data.joinedBy == request.auth.uid)
+        || (signedIn()
+          && request.auth.uid in resource.data.members
+          && resource.data.status == 'paired'
+          && request.resource.data.members == resource.data.members
+          && request.resource.data.status == resource.data.status
+          && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['anniversaryDate', 'updatedAt'])
+          && request.resource.data.anniversaryDate is string
+          && request.resource.data.anniversaryDate.matches('^\\d{4}-\\d{2}-\\d{2}$'));
 
       allow delete: if false;
 
@@ -101,7 +175,9 @@ service cloud.firestore {
           && request.auth.uid == userId
           && request.resource.data.displayName is string
           && request.resource.data.displayName.size() >= 1
-          && request.resource.data.displayName.size() <= 30;
+          && request.resource.data.displayName.size() <= 30
+          && (!('gender' in request.resource.data)
+            || validGender(request.resource.data));
 
         allow delete: if false;
       }

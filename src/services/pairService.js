@@ -91,6 +91,7 @@ export async function createPair(uid) {
   await setDoc(doc(db, 'pairs', pairId, 'profiles', uid), {
     uid,
     displayName: userData.displayName,
+    gender: userData.gender,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -187,6 +188,7 @@ export async function joinPair(uid, inputCode) {
   await setDoc(doc(db, 'pairs', pairId, 'profiles', uid), {
     uid,
     displayName: userData.displayName,
+    gender: userData.gender,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
@@ -421,4 +423,20 @@ export async function getPairMemberProfile(pairId, uid) {
   return snapshot.exists()
     ? { uid, ...snapshot.data() }
     : null;
+}
+
+export function subscribeToPairDetails(pairId, callback, onError) {
+  return onSnapshot(doc(db, 'pairs', pairId), (snapshot) => {
+    callback(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
+  }, onError);
+}
+
+export async function updatePairAnniversaryDate(pairId, anniversaryDate) {
+  if (!pairId || !/^\d{4}-\d{2}-\d{2}$/.test(anniversaryDate)) {
+    throw new Error('Ngày kỷ niệm chưa hợp lệ.');
+  }
+  await updateDoc(doc(db, 'pairs', pairId), {
+    anniversaryDate,
+    updatedAt: serverTimestamp(),
+  });
 }

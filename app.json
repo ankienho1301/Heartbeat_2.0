@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Heartbeat",
+    "name": "akqt",
     "slug": "akqt",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/icon_akqt.png",
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
@@ -18,8 +18,8 @@
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
+        "foregroundImage": "./assets/icon_akqt.png",
+        "backgroundImage": "./assets/icon_2_akqt.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       }
     },
